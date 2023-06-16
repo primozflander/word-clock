@@ -1,35 +1,28 @@
 #include <Arduino.h>
 #include <SystemFunctions.h>
+#include <WordClockDisplay.h>
+#include <AnalogClockDisplay.h>
 #include <LedFunctions.h>
+#include <StateMachineFunctions.h>
+#include <TempHumDisplay.h>
 
-int colorValue;
 
 void setup()
 {
     Serial.begin(115200);
-    init();
+    initStates();
     Serial.println("INFO: Setup complete");
 }
 
-// the loop function runs over and over again forever
 void loop()
 {
-    colorValue < 65530 ? colorValue += 100 : colorValue = 0;
-    defaultColor = pixels.ColorHSV(colorValue);
-    // Serial.println("Hello");
-    timeClient.update();
-    Serial.println(timeClient.getFormattedTime());
-    seconds = timeClient.getSeconds();
-    minutes = timeClient.getMinutes();
-    hours = timeClient.getHours();
-
-    resetFrame();
-    addSecondsToFrame();
-    addHoursToFrame();
-    addMinutesToFrame();
-    addStaticToFrame();
-    printFrame();
-    updateDisplay();
+    stateMachine.run();
+    updatePixelColors();
     delay(1000);
-    // simulateRTC();
+    printFrame();
+    ArduinoOTA.handle();
+
+    // addCustomFrame(weilingFrame);
+    // delay(5000);
+    // Serial.println("running");
 }

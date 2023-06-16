@@ -7,243 +7,126 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ESPmDNS.h>
+#include <WiFiManager.h>
+#include <Credentials.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <ArduinoOTA.h>
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "at.pool.ntp.org", 7200, 60000);
 RTC_DS3231 rtc;
 BH1750 lightMeter;
-
-// const char *ssid = "viewpointsystemdev";
-// const char *password = "!vps2017dev!";
-const char *ssid = "WLAN14510355";
-const char *password = "Mtm6nvcwtxtn";
-int hours;
-int minutes;
-int seconds;
+Adafruit_BME280 bme;
+int colorValue;
 
 void initRtc();
 void initLightMeter();
 void init();
 void initWifi();
 void simulateRTC();
-void addSecondsToFrame();
-void addMinutesToFrame();
-void addHoursToFrame();
-void addStaticToFrame();
+void initAP();
+void initBme();
+void getWebTime();
+void updatePixelColors();
+void initOTA();
+void displayIntro();
 
-void addHoursToFrame()
+void initBme()
 {
-    if (hours == 0)
+    // status = bme.begin(0x76, &Wire2)
+    if (!bme.begin(0x76))
     {
-        addWordToFrame(w_hours[11], frame, defaultColor);
-        addWordToFrame(w_at, frame, defaultColor);
-        addWordToFrame(w_night, frame, defaultColor);
+        Serial.println("ERROR: BME280 init failed");
     }
-    else if (hours <= 11)
+}
+
+void initAP()
+{
+    WiFi.mode(WIFI_STA);
+    WiFiManager wm;
+    // reset settings - wipe stored credentials for testing
+    // these are stored by the esp library
+    // wm.resetSettings();
+    bool res;
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+    res = wm.autoConnect("WordClockAP"); // password protected ap
+    if (!res)
     {
-        addWordToFrame(w_hours[hours - 1], frame, defaultColor);
-        addWordToFrame(w_in, frame, defaultColor);
-        addWordToFrame(w_the_2, frame, defaultColor);
-        addWordToFrame(w_morning, frame, defaultColor);
-    }
-    else if (hours == 12)
-    {
-        addWordToFrame(w_hours[11], frame, defaultColor);
-        addWordToFrame(w_in, frame, defaultColor);
-        addWordToFrame(w_the_2, frame, defaultColor);
-        addWordToFrame(w_afternoon, frame, defaultColor);
-    }
-    else if (hours > 12 && hours < 18)
-    {
-        addWordToFrame(w_hours[hours - 13], frame, defaultColor);
-        addWordToFrame(w_in, frame, defaultColor);
-        addWordToFrame(w_the_2, frame, defaultColor);
-        addWordToFrame(w_afternoon, frame, defaultColor);
-    }
-    else if (hours >= 18 && hours < 21)
-    {
-        addWordToFrame(w_hours[hours - 13], frame, defaultColor);
-        addWordToFrame(w_in, frame, defaultColor);
-        addWordToFrame(w_the_2, frame, defaultColor);
-        addWordToFrame(w_evening, frame, defaultColor);
+        Serial.println("FAIL: Failed to connect");
+        // ESP.restart();
     }
     else
     {
-        addWordToFrame(w_hours[hours - 13], frame, defaultColor);
-        addWordToFrame(w_at, frame, defaultColor);
-        addWordToFrame(w_night, frame, defaultColor);
+        Serial.println("INFO: Connected");
+        if (!MDNS.begin(DEVICE_MDNS_NAME))
+        {
+            Serial.println("FAIL: Error setting up MDNS responder!");
+        }
+        Serial.println("INFO: mDNS responder started");
     }
 }
 
-void addMinutesToFrame()
+void initOTA()
 {
-    if (minutes == 0)
+    // Hostname defaults to esp3232-[MAC]
+    ArduinoOTA.setHostname(DEVICE_MDNS_NAME);
+    ArduinoOTA
+        .onStart([]()
+                 {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type); })
+        .onEnd([]()
+               { Serial.println("\nEnd"); })
+        .onProgress([](unsigned int progress, unsigned int total)
+                    { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); })
+        .onError([](ota_error_t error)
+                 {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed"); });
+
+    ArduinoOTA.begin();
+
+    Serial.println("Ready");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+}
+
+void updatePixelColors()
+{
+    static unsigned long previousColorUpdate = 0;
+    if ((millis() - previousColorUpdate) > 1000)
     {
-        addWordToFrame(w_oclock, frame, defaultColor);
-    }
-    else if (minutes == 1)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minute, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 1 && minutes < 5)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 5)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 5 && minutes < 10)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 10)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 10 && minutes < 15)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 15)
-    {
-        addWordToFrame(w_a, frame, defaultColor);
-        addWordToFrame(w_quarter, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 15 && minutes < 20)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 20)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 20 && minutes < 25)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[minutes - 20], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 25)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[minutes - 20], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 25 && minutes < 30)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[minutes - 20], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 30)
-    {
-        addWordToFrame(w_half, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 30 && minutes < 35)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 35)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 35 && minutes < 40)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 40)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 40 && minutes < 45)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 45)
-    {
-        addWordToFrame(w_a, frame, defaultColor);
-        addWordToFrame(w_quarter, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 45 && minutes < 50)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 50)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 50 && minutes < 55)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 55)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 55 && minutes < 59)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minute, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
+        colorValue < 65530 ? colorValue += 100 : colorValue = 0;
+        defaultColor = pixels.ColorHSV(colorValue);
+        previousColorUpdate = millis();
     }
 }
 
-void addStaticToFrame()
+void getWebTime()
 {
-    addWordToFrame(w_the, frame, defaultColor);
-    addWordToFrame(w_time, frame, defaultColor);
-    addWordToFrame(w_is, frame, defaultColor);
-}
-
-void addSecondsToFrame()
-{
-    addWordToFrame(w_seconds[seconds % 10], frame, defaultColor);
-    if (seconds > 9)
-    {
-        addWordToFrame(w_seconds_dec[int(seconds / pow(10, floor(log10(seconds))))], frame, defaultColor);
-    }
+    // static unsigned long previousTimeUpdate = 0;
+    // if ((millis() - previousTimeUpdate) > 1000)
+    // {
+        timeClient.update();
+        Serial.println(timeClient.getFormattedTime());
+        seconds = timeClient.getSeconds();
+        minutes = timeClient.getMinutes();
+        hours = timeClient.getHours();
+        // previousTimeUpdate = millis();
+        // Serial.println("s");
+    // }
 }
 
 void simulateRTC()
@@ -259,17 +142,12 @@ void init()
     pinMode(DEBUG_LED_PIN, OUTPUT);
     pinMode(DEBUG_LED2_PIN, OUTPUT);
     pinMode(BOOT_BUTTON_PIN, INPUT);
-    // Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    // Wire.begin();
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    initBme();
     // initRtc();
     // initLightMeter();
     initPixels();
-    initWifi();
-    timeClient.begin();
-}
-
-void initWifi()
-{
+#ifdef DEBUG
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED)
@@ -277,11 +155,37 @@ void initWifi()
         delay(500);
         Serial.print(".");
     }
-    if (!MDNS.begin("esp32"))
+    if (!MDNS.begin(DEVICE_MDNS_NAME))
     {
         Serial.println("Error setting up MDNS responder!");
     }
     Serial.println("mDNS responder started");
+    initOTA();
+#else
+    initWifi();
+    timeClient.begin();
+    // timeClient.update();
+    // WiFi.disconnect(true);
+    // WiFi.mode(WIFI_OFF);
+#endif
+}
+
+void initWifi()
+{
+    // WiFi.mode(WIFI_STA);
+    // WiFi.begin(ssid, password);
+    // while (WiFi.status() != WL_CONNECTED)
+    // {
+    //     delay(500);
+    //     Serial.print(".");
+    // }
+    // if (!MDNS.begin("esp32"))
+    // {
+    //     Serial.println("Error setting up MDNS responder!");
+    // }
+    // Serial.println("mDNS responder started");
+    initAP();
+    initOTA();
 }
 
 void initLightMeter()
