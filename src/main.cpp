@@ -6,7 +6,6 @@
 #include <StateMachineFunctions.h>
 #include <TempHumDisplay.h>
 
-
 void setup()
 {
     Serial.begin(115200);
@@ -17,10 +16,11 @@ void setup()
 void loop()
 {
     stateMachine.run();
+    adaptBrightness();
     updatePixelColors();
-    delay(1000);
     printFrame();
     ArduinoOTA.handle();
+    delay(1000);
 
     // addCustomFrame(weilingFrame);
     // delay(5000);

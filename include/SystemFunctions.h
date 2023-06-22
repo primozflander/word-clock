@@ -16,12 +16,12 @@
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "at.pool.ntp.org", 7200, 60000);
 RTC_DS3231 rtc;
-BH1750 lightMeter;
+BH1750 lightSensor;
 Adafruit_BME280 bme;
 int colorValue;
 
 void initRtc();
-void initLightMeter();
+void initLightSensor();
 void init();
 void initWifi();
 void simulateRTC();
@@ -30,19 +30,25 @@ void initBme();
 void getWebTime();
 void updatePixelColors();
 void initOTA();
-void displayIntro();
+void adaptBrightness();
 
 void initBme()
 {
     // status = bme.begin(0x76, &Wire2)
-    if (!bme.begin(0x76))
+    if (bme.begin(0x76))
+    {
+        isBmeDetected = true;
+    }
+    else
     {
         Serial.println("ERROR: BME280 init failed");
+        isBmeDetected = false;
     }
 }
 
 void initAP()
 {
+    Serial.println("INFO: AP init");
     WiFi.mode(WIFI_STA);
     WiFiManager wm;
     // reset settings - wipe stored credentials for testing
@@ -119,13 +125,13 @@ void getWebTime()
     // static unsigned long previousTimeUpdate = 0;
     // if ((millis() - previousTimeUpdate) > 1000)
     // {
-        timeClient.update();
-        Serial.println(timeClient.getFormattedTime());
-        seconds = timeClient.getSeconds();
-        minutes = timeClient.getMinutes();
-        hours = timeClient.getHours();
-        // previousTimeUpdate = millis();
-        // Serial.println("s");
+    timeClient.update();
+    Serial.println(timeClient.getFormattedTime());
+    seconds = timeClient.getSeconds();
+    minutes = timeClient.getMinutes();
+    hours = timeClient.getHours();
+    // previousTimeUpdate = millis();
+    // Serial.println("s");
     // }
 }
 
@@ -139,13 +145,15 @@ void simulateRTC()
 
 void init()
 {
-    pinMode(DEBUG_LED_PIN, OUTPUT);
+#ifdef ESP32C3
     pinMode(DEBUG_LED2_PIN, OUTPUT);
-    pinMode(BOOT_BUTTON_PIN, INPUT);
+#endif
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    pinMode(BOOT_BUTTON_PIN, INPUT);
+    pinMode(DEBUG_LED_PIN, OUTPUT);
     initBme();
-    // initRtc();
-    // initLightMeter();
+    initRtc();
+    initLightSensor();
     initPixels();
 #ifdef DEBUG
     WiFi.mode(WIFI_STA);
@@ -188,15 +196,17 @@ void initWifi()
     initOTA();
 }
 
-void initLightMeter()
+void initLightSensor()
 {
-    if (!lightMeter.begin(BH1750::ONE_TIME_HIGH_RES_MODE))
+    if (!lightSensor.begin(BH1750::CONTINUOUS_HIGH_RES_MODE))
     {
         Serial.println("FAIL: Couldn't find DH1750");
+        isLightSensorDetected = false;
     }
     else
     {
         Serial.println("INFO: Connected to DH1750");
+        isLightSensorDetected = true;
     }
 }
 
@@ -205,6 +215,7 @@ void initRtc()
     if (!rtc.begin())
     {
         Serial.println("FAIL: Couldn't find DS3231");
+        isRtcDetected = false;
     }
     else
     {
@@ -214,5 +225,16 @@ void initRtc()
             Serial.println("INFO: RTC lost power, setting time");
             rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         }
+        isRtcDetected = true;
+    }
+}
+
+void adaptBrightness()
+{
+    if (isLightSensorDetected)
+    {
+        float lux = lightSensor.readLightLevel();
+        Serial.println("Light: " + String(lux) + " lx");
+        pixels.setBrightness(map(lux, 0, 1500, 0, 255));
     }
 }

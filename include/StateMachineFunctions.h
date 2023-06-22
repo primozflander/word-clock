@@ -87,7 +87,7 @@ void tempHumState()
 bool word2tempHumTransition()
 {
     Serial.println("TRANSITION CHECK: word2tempHum");
-    if ((millis() - previousStateMillis) > 10000)
+    if ((millis() - previousStateMillis) > 10000 && isBmeDetected)
     {
         return true;
     }
