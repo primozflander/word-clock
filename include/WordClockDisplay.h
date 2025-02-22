@@ -119,62 +119,57 @@ void displayWordClock()
 #ifdef DEBUG
     simulateRTC();
 #else
-    getWebTime();
+    // getWebTime();
+    getRtcTime();
 #endif
     resetFrame();
     addSecondsToFrame();
-    if (hours == 9 && minutes == 16)
-    {
-        addCustomFrame(weilingFrame);
-    }
-    else
-    {
-        addHoursToFrame();
-        addMinutesToFrame();
-    }
+    addHoursToFrame();
+    addMinutesToFrame();
     addStaticToFrame();
     updateDisplay();
 }
 
 void addHoursToFrame()
 {
-    if (hours == 0)
+    int hoursToDisplay = int(minutes > 30) + hours; 
+    if (hoursToDisplay == 0)
     {
         addWordToFrame(w_hours[11], frame, defaultColor);
         addWordToFrame(w_at, frame, defaultColor);
         addWordToFrame(w_night, frame, defaultColor);
     }
-    else if (hours <= 11)
+    else if (hoursToDisplay <= 11)
     {
-        addWordToFrame(w_hours[hours - 1], frame, defaultColor);
+        addWordToFrame(w_hours[hoursToDisplay - 1], frame, defaultColor);
         addWordToFrame(w_in, frame, defaultColor);
         addWordToFrame(w_the_2, frame, defaultColor);
         addWordToFrame(w_morning, frame, defaultColor);
     }
-    else if (hours == 12)
+    else if (hoursToDisplay == 12)
     {
         addWordToFrame(w_hours[11], frame, defaultColor);
         addWordToFrame(w_in, frame, defaultColor);
         addWordToFrame(w_the_2, frame, defaultColor);
         addWordToFrame(w_afternoon, frame, defaultColor);
     }
-    else if (hours > 12 && hours < 18)
+    else if (hoursToDisplay > 12 && hoursToDisplay < 18)
     {
-        addWordToFrame(w_hours[hours - 13], frame, defaultColor);
+        addWordToFrame(w_hours[hoursToDisplay - 13], frame, defaultColor);
         addWordToFrame(w_in, frame, defaultColor);
         addWordToFrame(w_the_2, frame, defaultColor);
         addWordToFrame(w_afternoon, frame, defaultColor);
     }
-    else if (hours >= 18 && hours < 21)
+    else if (hoursToDisplay >= 18 && hoursToDisplay < 21)
     {
-        addWordToFrame(w_hours[hours - 13], frame, defaultColor);
+        addWordToFrame(w_hours[hoursToDisplay - 13], frame, defaultColor);
         addWordToFrame(w_in, frame, defaultColor);
         addWordToFrame(w_the_2, frame, defaultColor);
         addWordToFrame(w_evening, frame, defaultColor);
     }
     else
     {
-        addWordToFrame(w_hours[hours - 13], frame, defaultColor);
+        addWordToFrame(w_hours[hoursToDisplay - 13], frame, defaultColor);
         addWordToFrame(w_at, frame, defaultColor);
         addWordToFrame(w_night, frame, defaultColor);
     }
@@ -192,29 +187,29 @@ void addMinutesToFrame()
         addWordToFrame(w_minute, frame, defaultColor);
         addWordToFrame(w_past, frame, defaultColor);
     }
-    else if (minutes > 1 && minutes < 5)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 5)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 5 && minutes < 10)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 10)
-    {
-        addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 10 && minutes < 15)
+    // else if (minutes > 1 && minutes < 5)
+    // {
+    //     addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
+    //     addWordToFrame(w_minutes_2, frame, defaultColor);
+    //     addWordToFrame(w_past, frame, defaultColor);
+    // }
+    // else if (minutes == 5)
+    // {
+    //     addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
+    //     addWordToFrame(w_past, frame, defaultColor);
+    // }
+    // else if (minutes > 5 && minutes < 10)
+    // {
+    //     addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
+    //     addWordToFrame(w_minutes_2, frame, defaultColor);
+    //     addWordToFrame(w_past, frame, defaultColor);
+    // }
+    // else if (minutes == 10)
+    // {
+    //     addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
+    //     addWordToFrame(w_past, frame, defaultColor);
+    // }
+    else if (minutes > 1 && minutes < 15)
     {
         addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
         addWordToFrame(w_minutes_2, frame, defaultColor);
@@ -237,23 +232,23 @@ void addMinutesToFrame()
         addWordToFrame(w_minutes[minutes - 1], frame, defaultColor);
         addWordToFrame(w_past, frame, defaultColor);
     }
-    else if (minutes > 20 && minutes < 25)
+    // else if (minutes > 20 && minutes < 25)
+    // {
+    //     addWordToFrame(w_minutes[19], frame, defaultColor);
+    //     addWordToFrame(w_minutes[minutes - 19], frame, defaultColor);
+    //     addWordToFrame(w_minutes_2, frame, defaultColor);
+    //     addWordToFrame(w_past, frame, defaultColor);
+    // }
+    // else if (minutes == 25)
+    // {
+    //     addWordToFrame(w_minutes[19], frame, defaultColor);
+    //     addWordToFrame(w_minutes[minutes - 19], frame, defaultColor);
+    //     addWordToFrame(w_past, frame, defaultColor);
+    // }
+    else if (minutes > 20 && minutes < 30)
     {
         addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[minutes - 20], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes == 25)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[minutes - 20], frame, defaultColor);
-        addWordToFrame(w_past, frame, defaultColor);
-    }
-    else if (minutes > 25 && minutes < 30)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[minutes - 20], frame, defaultColor);
+        addWordToFrame(w_minutes[minutes - 21], frame, defaultColor);
         addWordToFrame(w_minutes_2, frame, defaultColor);
         addWordToFrame(w_past, frame, defaultColor);
     }
@@ -262,20 +257,20 @@ void addMinutesToFrame()
         addWordToFrame(w_half, frame, defaultColor);
         addWordToFrame(w_past, frame, defaultColor);
     }
-    else if (minutes > 30 && minutes < 35)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 35)
-    {
-        addWordToFrame(w_minutes[19], frame, defaultColor);
-        addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 35 && minutes < 40)
+    // else if (minutes > 30 && minutes < 35)
+    // {
+    //     addWordToFrame(w_minutes[19], frame, defaultColor);
+    //     addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
+    //     addWordToFrame(w_minutes_2, frame, defaultColor);
+    //     addWordToFrame(w_to, frame, defaultColor);
+    // }
+    // else if (minutes == 35)
+    // {
+    //     addWordToFrame(w_minutes[19], frame, defaultColor);
+    //     addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
+    //     addWordToFrame(w_to, frame, defaultColor);
+    // }
+    else if (minutes > 30 && minutes < 40)
     {
         addWordToFrame(w_minutes[19], frame, defaultColor);
         addWordToFrame(w_minutes[39 - minutes], frame, defaultColor);
@@ -299,29 +294,29 @@ void addMinutesToFrame()
         addWordToFrame(w_quarter, frame, defaultColor);
         addWordToFrame(w_to, frame, defaultColor);
     }
-    else if (minutes > 45 && minutes < 50)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 50)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 50 && minutes < 55)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_minutes_2, frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes == 55)
-    {
-        addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
-        addWordToFrame(w_to, frame, defaultColor);
-    }
-    else if (minutes > 55 && minutes < 59)
+    // else if (minutes > 45 && minutes < 50)
+    // {
+    //     addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
+    //     addWordToFrame(w_minutes_2, frame, defaultColor);
+    //     addWordToFrame(w_to, frame, defaultColor);
+    // }
+    // else if (minutes == 50)
+    // {
+    //     addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
+    //     addWordToFrame(w_to, frame, defaultColor);
+    // }
+    // else if (minutes > 50 && minutes < 55)
+    // {
+    //     addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
+    //     addWordToFrame(w_minutes_2, frame, defaultColor);
+    //     addWordToFrame(w_to, frame, defaultColor);
+    // }
+    // else if (minutes == 55)
+    // {
+    //     addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
+    //     addWordToFrame(w_to, frame, defaultColor);
+    // }
+    else if (minutes > 45 && minutes < 59)
     {
         addWordToFrame(w_minutes[59 - minutes], frame, defaultColor);
         addWordToFrame(w_minutes_2, frame, defaultColor);
@@ -334,6 +329,7 @@ void addMinutesToFrame()
         addWordToFrame(w_to, frame, defaultColor);
     }
 }
+
 
 void addStaticToFrame()
 {

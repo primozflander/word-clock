@@ -15,7 +15,7 @@
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "at.pool.ntp.org", 7200, 60000);
-RTC_DS3231 rtc;
+RTC_DS1307 rtc;
 BH1750 lightSensor;
 Adafruit_BME280 bme;
 int colorValue;
@@ -28,6 +28,7 @@ void simulateRTC();
 void initAP();
 void initBme();
 void getWebTime();
+void getRtcTime();
 void updatePixelColors();
 void initOTA();
 void adaptBrightness();
@@ -135,6 +136,15 @@ void getWebTime()
     // }
 }
 
+void getRtcTime()
+{
+    DateTime now = rtc.now();
+    Serial.println(now.timestamp());
+    seconds = now.second();
+    minutes = now.minute();
+    hours = now.hour();
+}
+
 void simulateRTC()
 {
     seconds < 59 ? seconds++ : seconds = 0;
@@ -155,27 +165,27 @@ void init()
     initRtc();
     initLightSensor();
     initPixels();
-#ifdef DEBUG
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-    if (!MDNS.begin(DEVICE_MDNS_NAME))
-    {
-        Serial.println("Error setting up MDNS responder!");
-    }
-    Serial.println("mDNS responder started");
-    initOTA();
-#else
-    initWifi();
-    timeClient.begin();
-    // timeClient.update();
-    // WiFi.disconnect(true);
-    // WiFi.mode(WIFI_OFF);
-#endif
+    // #ifdef DEBUG
+    //     WiFi.mode(WIFI_STA);
+    //     WiFi.begin(ssid, password);
+    //     while (WiFi.status() != WL_CONNECTED)
+    //     {
+    //         delay(500);
+    //         Serial.print(".");
+    //     }
+    //     if (!MDNS.begin(DEVICE_MDNS_NAME))
+    //     {
+    //         Serial.println("Error setting up MDNS responder!");
+    //     }
+    //     Serial.println("mDNS responder started");
+    //     initOTA();
+    // #else
+    //     initWifi();
+    //     timeClient.begin();
+    //     // timeClient.update();
+    //     // WiFi.disconnect(true);
+    //     // WiFi.mode(WIFI_OFF);
+    // #endif
 }
 
 void initWifi()
@@ -214,17 +224,24 @@ void initRtc()
 {
     if (!rtc.begin())
     {
-        Serial.println("FAIL: Couldn't find DS3231");
+        Serial.println("FAIL: Couldn't find DS1307");
         isRtcDetected = false;
     }
     else
     {
-        Serial.println("INFO: Connected to DS3231");
-        if (rtc.lostPower())
+        Serial.println("INFO: Connected to DS1307");
+        // if (rtc.lostPower())
+        // {
+        //     Serial.println("INFO: RTC lost power, setting time");
+        //     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        // }
+
+        if (!rtc.isrunning())
         {
-            Serial.println("INFO: RTC lost power, setting time");
+            Serial.println("RTC is NOT running, let's set the time!");
             rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         }
+        // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         isRtcDetected = true;
     }
 }
@@ -235,6 +252,13 @@ void adaptBrightness()
     {
         float lux = lightSensor.readLightLevel();
         Serial.println("Light: " + String(lux) + " lx");
-        pixels.setBrightness(map(lux, 0, 1500, 0, 255));
+        if (lux < 1)
+        {
+            pixels.setBrightness(0);
+        }
+        else
+        {
+            pixels.setBrightness(map(lux, 0, 1500, 64, 255));
+        }
     }
 }

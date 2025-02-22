@@ -19,10 +19,13 @@ void loop()
     adaptBrightness();
     updatePixelColors();
     printFrame();
-    ArduinoOTA.handle();
-    delay(1000);
+    // ArduinoOTA.handle();
+    // delay(1000);
 
     // addCustomFrame(weilingFrame);
     // delay(5000);
     // Serial.println("running");
+    // while(1);
+    esp_sleep_enable_timer_wakeup(1000000);
+    esp_light_sleep_start();
 }
